@@ -143,7 +143,47 @@ This dataset is especially useful because it contains **images with different li
             'bbox': ann['bbox'], 
             'category_id': ann['category_id']
         })
+    
+    # -------------------------
+    # Video Detection Section
+    # -------------------------
+    st.markdown("### Test Video Detection")
+    st.write("Detect cars in the selected video.")
 
+    video_path = r"C:\Users\Lenovo\OneDrive\Desktop\project4_CV\computer-vision-project-mawqif\models_training\istockphoto-845341376-640_adpp_is.mp4"
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        st.error("❌ Unable to open video file.")
+    else:
+        stframe = st.empty()  # placeholder to display video frames
+
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # تحويل BGR -> RGB
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img_tensor = T.ToTensor()(rgb_frame)
+
+            with torch.no_grad():
+                outputs = model([img_tensor])
+
+            boxes = outputs[0]["boxes"].numpy()
+            scores = outputs[0]["scores"].numpy()
+            labels = outputs[0]["labels"].numpy()
+
+            for box, score, label in zip(boxes, scores, labels):
+                if score > 0.5 and label == 1:  # class 1 = car
+                    x1, y1, x2, y2 = map(int, box)
+                    cv2.rectangle(rgb_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.putText(rgb_frame, f"Car {score:.2f}", (x1, y1-5),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
+
+            stframe.image(rgb_frame, channels="RGB")
+
+        cap.release()
     # -------------------------
     # Display Sample Images with Boxes
     # -------------------------
@@ -167,6 +207,8 @@ This dataset is especially useful because it contains **images with different li
 
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         st.image(img_rgb, caption=f"{img_name} - Boxes: {len(boxes)}", use_column_width=True)
+        
+ 
 # -------------------------
 # TAB 3: Prediction
 # -------------------------
