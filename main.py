@@ -116,7 +116,7 @@ This dataset contains **images with different lighting conditions, vehicle types
     )
 
     # Load COCO Annotations
-    base_path = "Dataset\train"  
+    base_path = r"Dataset\train"  
     annotations_file = os.path.join(base_path, "_annotations.coco.json")
 
     if not os.path.exists(annotations_file):
