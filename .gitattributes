@@ -1,1 +1,1 @@
-computer-vision-project-mawqif/faster_rcnn_car.pth filter=lfs diff=lfs merge=lfs -text
+*.pth filter=lfs diff=lfs merge=lfs -text
