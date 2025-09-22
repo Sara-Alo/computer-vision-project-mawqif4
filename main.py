@@ -13,7 +13,6 @@ import os
 # -------------------------
 # 1. Load Model Once
 # -------------------------
-#@st.cache(allow_output_mutation=True)  # works with older Streamlit
 @st.cache_resource
 def load_model():
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights=None)
@@ -27,6 +26,7 @@ def load_model():
     return model
 
 model = load_model()
+
 # -------------------------
 # 2. Load ROI
 # -------------------------
@@ -50,42 +50,39 @@ def check_roi_overlap(roi_points, car_box, H, W, threshold=0.2):
     car_area = (x2 - x1) * (y2 - y1)
     return inter_area / car_area > threshold
 
-
+# -------------------------
 # Twilio WhatsApp Setup 
+# -------------------------
 twilio_account_sid = "ACda9d1a900ee4cbba2f57326e933dd4e0"  
 twilio_auth_token  = "0fd71a11eb8477357f3a41d1668ca612"    
-source_whatsapp_number = "whatsapp:+14155238886"  # Twilio Sandbox WhatsApp number
+source_whatsapp_number = "whatsapp:+14155238886"
 destination_whatsapp_number = "whatsapp:+966533186523"  
 
 twilio_client = Client(twilio_account_sid, twilio_auth_token)
+
 # -------------------------
 # 3. Streamlit UI
 # -------------------------
 st.title("🚗 Mawqif (مواقف)")
-# Tabs
+
 tab1, tab2, tab3, tab4 = st.tabs(["About", 'Dataset',"Prediction", "Team"])
 
 # -------------------------
-# TAB 1: About (Plain Text, No Boxes)
+# TAB 1: About
 # -------------------------
 with tab1:
     st.markdown("## Parking Violation Detector Overview")
-
-    # Problem Section
     st.markdown("### Problem")
     st.write(
         "With the increasing population of Riyadh and the city's heavy traffic, parking has become a major problem. "
         "Many drivers do not park their cars correctly, and it is impractical for security personnel to photograph each car and issue violations manually."
     )
-    
-    # Solution Section
     st.markdown("### Our Solution")
     st.write(
         "We developed a smart system that detects cars parked incorrectly in parking lots and automatically records violations.\n"
         "The system sends a notification to the car owner with the issued violation and the corresponding fine.\n"
         "The goal is to improve compliance with parking regulations and organize parking in crowded cities like Riyadh."
     )
-    # Workflow Section
     st.markdown("### Workflow / Model Pipeline")
     st.write(
         "1. **Data Collection**: Collected images of parking lots from Roboflow.\n"
@@ -97,14 +94,12 @@ with tab1:
         "5. **Violation Detection**: Used the `check_roi_overlap` function to check whether a car is within the allowed area.\n"
         "6. **Notifications**: If a violation occurs, the system automatically sends a message to the car owner."
     )
-    
+
 # -------------------------
 # TAB 2: Dataset
 # -------------------------
 with tab2:
     st.markdown("## Dataset")
-
-    # Dataset Description
     st.markdown("### Dataset Description")
     st.write(
         """
@@ -112,17 +107,15 @@ In this project, we used the **Parking Computer Vision Dataset** from Roboflow. 
 
 To ensure effective model training and evaluation, the dataset was divided into three parts:
 
-- **Training set (70%)**: used to train the car detection model.  
-- **Validation set (20%)**: used during training to monitor performance and fine-tune the parameters.  
-- **Test set (10%)**: used after training to evaluate the final model’s accuracy on unseen data.
+- **Training set (70%)**  
+- **Validation set (20%)**  
+- **Test set (10%)**  
 
-This dataset is especially useful because it contains **images with different lighting conditions, vehicle types, and parking angles**, which helped the model generalize better. By training on these diverse examples, the system can reliably detect whether a parking slot is occupied or free, even in challenging real-world scenarios.
+This dataset contains **images with different lighting conditions, vehicle types, and parking angles**, which helped the model generalize better.
 """
     )
 
-    # -------------------------
     # Load COCO Annotations
-    # -------------------------
     base_path = r"C:\Users\Lenovo\OneDrive\Desktop\project4_CV\computer-vision-project-mawqif\Dataset\train"  
     annotations_file = os.path.join(base_path, "_annotations.coco.json")
 
@@ -143,55 +136,13 @@ This dataset is especially useful because it contains **images with different li
             'bbox': ann['bbox'], 
             'category_id': ann['category_id']
         })
-    
-    # -------------------------
-    # Video Detection Section
-    # -------------------------
-    st.markdown("### Test Video Detection")
-    st.write("Detect cars in the selected video.")
 
-    video_path = r"C:\Users\Lenovo\OneDrive\Desktop\project4_CV\computer-vision-project-mawqif\models_training\istockphoto-845341376-640_adpp_is.mp4"
-
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        st.error("❌ Unable to open video file.")
-    else:
-        stframe = st.empty()  # placeholder to display video frames
-
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            # تحويل BGR -> RGB
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            img_tensor = T.ToTensor()(rgb_frame)
-
-            with torch.no_grad():
-                outputs = model([img_tensor])
-
-            boxes = outputs[0]["boxes"].numpy()
-            scores = outputs[0]["scores"].numpy()
-            labels = outputs[0]["labels"].numpy()
-
-            for box, score, label in zip(boxes, scores, labels):
-                if score > 0.5 and label == 1:  # class 1 = car
-                    x1, y1, x2, y2 = map(int, box)
-                    cv2.rectangle(rgb_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    cv2.putText(rgb_frame, f"Car {score:.2f}", (x1, y1-5),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
-
-            stframe.image(rgb_frame, channels="RGB")
-
-        cap.release()
-    # -------------------------
     # Display Sample Images with Boxes
-    # -------------------------
     st.markdown("### Sample Images with Bounding Boxes")
-    sample_images = list(dataset_dict.items())[:5]  
+    sample_images = list(dataset_dict.items())[:5]
 
-    for i, (img_name, boxes) in enumerate(sample_images):
-        img_path = os.path.join(base_path, img_name) 
+    for img_name, boxes in sample_images:
+        img_path = os.path.join(base_path, img_name)
         if not os.path.exists(img_path):
             st.warning(f"Image not found: {img_path}")
             continue
@@ -207,8 +158,7 @@ This dataset is especially useful because it contains **images with different li
 
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         st.image(img_rgb, caption=f"{img_name} - Boxes: {len(boxes)}", use_column_width=True)
-        
- 
+
 # -------------------------
 # TAB 3: Prediction
 # -------------------------
@@ -218,15 +168,12 @@ with tab3:
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
     if uploaded_file is not None:
-        # Load and preprocess image
         image = Image.open(uploaded_file).convert("RGB")
         W, H = image.size
         roi_points = denormalize_roi(roi_points_norm, W, H)
 
-        transform = T.ToTensor()
-        img_tensor = transform(image)
+        img_tensor = T.ToTensor()(image)
 
-        # Run detection
         with torch.no_grad():
             outputs = model([img_tensor])
 
@@ -237,7 +184,9 @@ with tab3:
         vis = np.array(image.copy())
         cv2.polylines(vis, [roi_points], isClosed=True, color=(0,0,255), thickness=3)
 
+        recipient_mobile_number = "+966533186523"
         results = []
+
         for i, (box, score, label) in enumerate(zip(boxes, scores, labels)):
             if score > 0.5 and label == 1:  # class 1 = car
                 x1, y1, x2, y2 = map(int, box)
@@ -254,10 +203,8 @@ with tab3:
                     "violation": violation
                 })
 
-               # إذا في مخالفة أرسل WhatsApp
-            recipient_mobile_number = "+966533186523" 
-  
-            if violation:
+                # إرسال WhatsApp إذا في مخالفة
+                if violation:
                     try:
                         message = twilio_client.messages.create(
                             body=(
@@ -267,14 +214,28 @@ with tab3:
                                 "قيمة الغرامة: 800 ريال"
                             ),
                             from_=source_whatsapp_number,
-                            to=destination_whatsapp_number  # نفس رقم WhatsApp المستلم
+                            to=destination_whatsapp_number
                         )
                         st.success(f"📩 WhatsApp message sent to {recipient_mobile_number} (SID: {message.sid})")
                     except Exception as e:
-                        st.error(f"❌ Error sending WhatsApp message: {e}")
+                        st.error(f" Error sending WhatsApp message: {e}")
+
         st.image(vis, caption="Detection Results", use_container_width=True)
-                   
-# -------------------------
+
+    image_path = r"C:\Users\Lenovo\OneDrive\Desktop\CV_project\computer-vision-project-mawqif\IMG2.png"
+    image = Image.open(image_path)
+    st.image(image, caption="Uploaded Image", use_column_width=True)
+
+
+    st.markdown("### 🚨 Example of a Parking Violation 🚨")
+
+    output_video_path = r"C:/Users/Lenovo/OneDrive/Desktop/CV_project/computer-vision-project-mawqif/output1.mp4"
+
+    if os.path.exists(output_video_path):
+        st.video(output_video_path)
+    else:
+        st.warning(" Video not found at the specified path.")
+
 # TAB 4: Team
 # -------------------------
 with tab4:
@@ -339,7 +300,6 @@ with tab4:
     - Developed the **MobileNet** and **R-CNN**model for car detection.
     - Assisted with **Region of Interest (ROI)** implementation to define parking slots along with Sarah and Aljwharah.
     - Contributed to designing the **Streamlit interface** with Sarah and Aljwharah.
-    - Worked on deployment preparation ().
 
     ### Aljwharah  Almousa
     - Dataset research and annotation for car detection.
