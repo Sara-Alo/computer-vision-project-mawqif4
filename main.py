@@ -20,7 +20,7 @@ def load_model():
     model.roi_heads.box_predictor = torchvision.models.detection.faster_rcnn.FastRCNNPredictor(
         in_features, num_classes=2  # background + car
     )
-    weights_path = "/Users/Lenovo/OneDrive/Desktop/project4_CV/computer-vision-project-mawqif/models_training/faster_rcnn_car.pth"
+    weights_path = "faster_rcnn_car.pth"
     model.load_state_dict(torch.load(weights_path, map_location="cpu"))
     model.eval()
     return model
@@ -30,7 +30,7 @@ model = load_model()
 # -------------------------
 # 2. Load ROI
 # -------------------------
-with open("/Users/Lenovo/OneDrive/Desktop/project4_CV/computer-vision-project-mawqif/roi_artifacts/roi_points_normalized.json") as f:
+with open("roi_artifacts/roi_points_normalized.json") as f:
     roi_points_norm = json.load(f)
 
 def denormalize_roi(roi_points_norm, W, H):
@@ -116,7 +116,7 @@ This dataset contains **images with different lighting conditions, vehicle types
     )
 
     # Load COCO Annotations
-    base_path = r"C:\Users\Lenovo\OneDrive\Desktop\project4_CV\computer-vision-project-mawqif\Dataset\train"  
+    base_path = "Dataset\train"  
     annotations_file = os.path.join(base_path, "_annotations.coco.json")
 
     if not os.path.exists(annotations_file):
@@ -222,14 +222,14 @@ with tab3:
 
         st.image(vis, caption="Detection Results", use_container_width=True)
 
-    image_path = r"C:\Users\Lenovo\OneDrive\Desktop\CV_project\computer-vision-project-mawqif\IMG2.png"
+    image_path = "IMG2.png"
     image = Image.open(image_path)
     st.image(image, caption="Uploaded Image", use_column_width=True)
 
 
     st.markdown("### 🚨 Example of a Parking Violation 🚨")
 
-    output_video_path = r"C:/Users/Lenovo/OneDrive/Desktop/CV_project/computer-vision-project-mawqif/output1.mp4"
+    output_video_path = "output1.mp4"
 
     if os.path.exists(output_video_path):
         st.video(output_video_path)
